@@ -1,191 +1,14 @@
 pragma solidity ^0.4.24;
 
-
-/**
- * @title SafeMath
- * @dev Math operations with safety checks that throw on error
- */
-library SafeMath {
-
-    /**
-     * @dev Multiplies two numbers, throws on overflow.
-     */
-    function mul(uint256 a, uint256 b)
-        internal
-        pure
-        returns (uint256 c)
-    {
-        /**
-         * @dev Gas optimization: this is cheaper than asserting 'a' not being zero, but the
-         * benefit is lost if 'b' is also tested.
-         * See: https://github.com/OpenZeppelin/openzeppelin-solidity/pull/522
-         */
-        if (a == 0) {
-            return 0;
-        }
-
-        c = a * b;
-        assert(c / a == b);
-        return c;
-    }
-
-    /**
-    * @dev Integer division of two numbers, truncating the quotient.
-    */
-    function div(uint256 a, uint256 b)
-        internal
-        pure
-        returns (uint256)
-    {
-        // assert(b > 0); // Solidity automatically throws when dividing by 0
-        // uint256 c = a / b;
-        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-        return a / b;
-    }
-
-    /**
-    * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
-    */
-    function sub(uint256 a, uint256 b)
-        internal
-        pure
-        returns (uint256)
-    {
-        assert(b <= a);
-        return a - b;
-    }
-
-    /**
-    * @dev Adds two numbers, throws on overflow.
-    */
-    function add(uint256 a, uint256 b)
-        internal
-        pure
-        returns (uint256 c)
-    {
-        c = a + b;
-        assert(c >= a);
-        return c;
-    }
-}
-
-
-
-/**
- * @title Owned
- */
-contract Owned {
-    address public owner;
-    address public newOwner;
-    mapping (address => bool) public admins;
-
-    event OwnershipTransferred(
-        address indexed _from, 
-        address indexed _to
-    );
-
-    modifier onlyOwner {
-        require(msg.sender == owner);
-        _;
-    }
-
-    modifier onlyAdmins {
-        require(admins[msg.sender]);
-        _;
-    }
-
-    function transferOwnership(address _newOwner) 
-        public 
-        onlyOwner 
-    {
-        newOwner = _newOwner;
-    }
-
-    function acceptOwnership() 
-        public 
-    {
-        require(msg.sender == newOwner);
-        emit OwnershipTransferred(owner, newOwner);
-        owner = newOwner;
-        newOwner = address(0);
-    }
-
-    function addAdmin(address _admin) 
-        onlyOwner 
-        public 
-    {
-        admins[_admin] = true;
-    }
-
-    function removeAdmin(address _admin) 
-        onlyOwner 
-        public 
-    {
-        delete admins[_admin];
-    }
-
-}
-
-
-/**
- * @title Pausable
- * @dev Base contract which allows children to implement an emergency stop mechanism.
- */
-contract Pausable is Owned {
-    event Pause();
-    event Unpause();
-
-    bool public paused = false;
-
-
-    /**
-     * @dev Modifier to make a function callable only when the contract is not paused.
-     */
-    modifier whenNotPaused() {
-        require(!paused);
-        _;
-    }
-
-    /**
-     * @dev Modifier to make a function callable only when the contract is paused.
-     */
-    modifier whenPaused() {
-        require(paused);
-        _;
-    }
-
-    /**
-     * @dev called by the owner to pause, triggers stopped state
-     */
-    function pause() 
-        onlyAdmins 
-        whenNotPaused 
-        public 
-    {
-        paused = true;
-        emit Pause();
-    }
-
-    /**
-     * @dev called by the owner to unpause, returns to normal state
-     */
-    function unpause() 
-        onlyAdmins 
-        whenPaused 
-        public 
-    {
-        paused = false;
-        emit Unpause();
-    }
-}
-
+import "./SafeMath.sol";
+import "./Pausable.sol";
 
 /**
  * @title Gateway
  * @dev player recharge TAT to dappchain and withdraw TAT from dappchain
  * @dev only support recharge once a period.
  */
-contract Gateway is Pausable {
+contract Gateway_Eth is Pausable {
     using SafeMath for uint256;
 
     event Recharge(address indexed _user, uint256 indexed tatAmount);
@@ -193,13 +16,14 @@ contract Gateway is Pausable {
     event BackTo(address indexed _user, uint256 indexed tatAmount);
 
     address ERC20address;
-    uint256 public lockTime = 1 hours;
+    uint256 public lockTime = 1 days;
     mapping (address  => locker) lockers;
 
     struct locker{
         uint256 unlockTime;
         uint256 balance;
         bytes32 hashStr;
+        address to;
     }
 
 
@@ -208,7 +32,7 @@ contract Gateway is Pausable {
         admins[msg.sender] = true;
     }
 
-    function setTokenAddress(address _address)
+    function setTatAddress(address _address)
         public
         onlyAdmins
     {
@@ -219,14 +43,14 @@ contract Gateway is Pausable {
         public
         onlyAdmins
     {
-        lockTime = _time * 1 hours;
+        lockTime = _time;
     }
 
 
     /**
      * @dev Hashed Timelock Contracts
      */
-    function recharge(bytes32 _hash, uint256 _token) 
+    function recharge(bytes32 _hash, uint256 _token, address _to) 
         public
         whenNotPaused
     {
@@ -237,6 +61,7 @@ contract Gateway is Pausable {
             lockers[msg.sender].unlockTime = now.add(lockTime);
             lockers[msg.sender].balance = _token;
             lockers[msg.sender].hashStr = _hash;
+            lockers[msg.sender].to = _to;
         }
 
         emit Recharge(msg.sender, _token);
@@ -251,7 +76,7 @@ contract Gateway is Pausable {
         emit Recharge(_addr, _amount);
     }
 */
-    function withdrawToOwner(string _key, address _addr)
+    function withdrawTo(string _key, address _addr)
         public
         whenNotPaused
     {
@@ -261,22 +86,23 @@ contract Gateway is Pausable {
         
         ERC20Interface token = ERC20Interface(ERC20address);
 
-        if(token.transfer(owner, lockers[_addr].balance)) {
+        if(token.transfer(lockers[_addr].to, lockers[_addr].balance)) {
             delete lockers[_addr];
         }
 
-        emit Withdraw(owner, lockers[_addr].balance);
+        emit Withdraw(lockers[_addr].to, lockers[_addr].balance);
     }
 
-    function backTo()
+
+    function backTo(address _from)
         public
         whenNotPaused
     {
-        require(lockers[msg.sender].unlockTime >= now, "locked");
+        require(lockers[_from].unlockTime >= now, "locked");
         
         ERC20Interface token = ERC20Interface(ERC20address);
         
-        if(token.transfer(msg.sender, lockers[msg.sender].balance)) {
+        if(token.transfer(_from, lockers[_from].balance)) {
             delete lockers[msg.sender];
         }
 
