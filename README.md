@@ -1,4 +1,4 @@
-# token model
+# Token Model
 
 
 ## project1
@@ -58,7 +58,7 @@ https://microscope.cryptape.com/#/account/0xbBd0d2b70D63b5DF19E3852EfCA3d473d837
 
 我用以太坊上面一个ERC20 token，Loom来举例，实现用Loom来买我们发行在appchain上的BHT。
 
-现在玩家P在以太坊上有1000 loom。他想用这1000个Loom来买BHT。
+现在玩家P在以太坊上有1000 loom。他想用这1000个Loom来买NOS。
 
 ### 第一步
 P调用Loom合约里面的approve函数，允许以太坊上的Gateway合约A去转移他地址下的1000个Loom。
