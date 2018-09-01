@@ -1,14 +1,191 @@
 pragma solidity ^0.4.24;
 
-import "./SafeMath.sol";
-import "./Pausable.sol";
+
+/**
+ * @title Owned
+ */
+contract Owned {
+    address public owner;
+    address public newOwner;
+    mapping (address => bool) public admins;
+
+    event OwnershipTransferred(
+        address indexed _from, 
+        address indexed _to
+    );
+
+    modifier onlyOwner {
+        require(msg.sender == owner);
+        _;
+    }
+
+    modifier onlyAdmins {
+        require(admins[msg.sender]);
+        _;
+    }
+
+    function transferOwnership(address _newOwner) 
+        public 
+        onlyOwner 
+    {
+        newOwner = _newOwner;
+    }
+
+    function acceptOwnership() 
+        public 
+    {
+        require(msg.sender == newOwner);
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+        newOwner = address(0);
+    }
+
+    function addAdmin(address _admin) 
+        onlyOwner 
+        public 
+    {
+        admins[_admin] = true;
+    }
+
+    function removeAdmin(address _admin) 
+        onlyOwner 
+        public 
+    {
+        delete admins[_admin];
+    }
+
+}
+
+
+/**
+ * @title Pausable
+ * @dev Base contract which allows children to implement an emergency stop mechanism.
+ */
+contract Pausable is Owned {
+    event Pause();
+    event Unpause();
+
+    bool public paused = false;
+
+
+    /**
+     * @dev Modifier to make a function callable only when the contract is not paused.
+     */
+    modifier whenNotPaused() {
+        require(!paused);
+        _;
+    }
+
+    /**
+     * @dev Modifier to make a function callable only when the contract is paused.
+     */
+    modifier whenPaused() {
+        require(paused);
+        _;
+    }
+
+    /**
+     * @dev called by the owner to pause, triggers stopped state
+     */
+    function pause() 
+        onlyAdmins 
+        whenNotPaused 
+        public 
+    {
+        paused = true;
+        emit Pause();
+    }
+
+    /**
+     * @dev called by the owner to unpause, returns to normal state
+     */
+    function unpause() 
+        onlyAdmins 
+        whenPaused 
+        public 
+    {
+        paused = false;
+        emit Unpause();
+    }
+}
+
+
+
+/**
+ * @title SafeMath
+ * @dev Math operations with safety checks that throw on error
+ */
+library SafeMath {
+
+    /**
+     * @dev Multiplies two numbers, throws on overflow.
+     */
+    function mul(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256 c)
+    {
+        /**
+         * @dev Gas optimization: this is cheaper than asserting 'a' not being zero, but the
+         * benefit is lost if 'b' is also tested.
+         * See: https://github.com/OpenZeppelin/openzeppelin-solidity/pull/522
+         */
+        if (a == 0) {
+            return 0;
+        }
+
+        c = a * b;
+        assert(c / a == b);
+        return c;
+    }
+
+    /**
+    * @dev Integer division of two numbers, truncating the quotient.
+    */
+    function div(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256)
+    {
+        // assert(b > 0); // Solidity automatically throws when dividing by 0
+        // uint256 c = a / b;
+        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
+        return a / b;
+    }
+
+    /**
+    * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
+    */
+    function sub(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256)
+    {
+        assert(b <= a);
+        return a - b;
+    }
+
+    /**
+    * @dev Adds two numbers, throws on overflow.
+    */
+    function add(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256 c)
+    {
+        c = a + b;
+        assert(c >= a);
+        return c;
+    }
+}
+
 
 /**
  * @title Gateway
  * @dev player recharge TAT to dappchain and withdraw TAT from dappchain
  * @dev only support recharge once a period.
  */
-contract Gateway_Eth is Pausable {
+contract Gateway is Pausable {
     using SafeMath for uint256;
 
     event Recharge(address indexed _user, uint256 indexed tatAmount);

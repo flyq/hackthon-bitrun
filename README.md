@@ -17,7 +17,7 @@ https://microscope.cryptape.com/#/account/0x7a7c7Fa336DC88007E372aCA919419205769
 
 ### Gateway.sol
 communication within ethereum and appchain
-https://microscope.cryptape.com/#/account/0x5F96D1C6894354F61BD3b9907a090BB0ae3baF2c
+https://microscope.cryptape.com/#/account/0x19068276D008cf18CeDb8Ba6ed1550E05f4b6b97
 
 ### SimpleStore.sol
 store private strings of player
