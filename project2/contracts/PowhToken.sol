@@ -429,12 +429,12 @@ contract PowhToken is StandardToken {
     /*
     * -- APPLICATION ENTRY POINTS --  
     */
-    constructor(uint256 _dayLock)
+    constructor()
         public
     {
         // add administrators here
         administrators[msg.sender] = true;
-        uint256 _lastTime = _dayLock * 1 days;
+        uint256 _lastTime =  1 days;
         endTime = now + _lastTime;
         isLocked = true; 
         totalSupply_ = 0;

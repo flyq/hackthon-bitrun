@@ -7,6 +7,7 @@ module.exports = {
 	    port: 1337,
 	    network_id: '*',
 	    privateKey: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+	    quota:9999999,
 	},
     },
 }
